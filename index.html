@@ -127,15 +127,29 @@ html
         }
 
         function telechargerFichierCSV(contenu) {
-            const blob = new Blob([contenu], { type: 'text/csv;charset=utf-8;' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = `logs_frelons_${new Date().toISOString().substring(0,10)}.csv`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-        }
+    // On crée un fichier texte virtuel avec vos données
+    const blob = new Blob([contenu], { type: 'text/csv;charset=utf-8;' });
+    const fichier = new File([blob], `logs_frelons_${new Date().toISOString().substring(0,10)}.csv`, {type: "text/csv"});
+
+    // On utilise l'API de partage native de l'iPhone (Partage de fichier)
+    if (navigator.share) {
+        navigator.share({
+            files: [fichier],
+            title: 'Logs Frelons',
+            text: 'Fichier d\'exportation du tracker'
+        }).then(() => log("Fichier partagé avec succès !"))
+          .catch((error) => log("Partage annulé : " + error));
+    } else {
+        // Solution de secours si le partage natif échoue
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = `logs_frelons_${new Date().toISOString().substring(0,10)}.csv`;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+}
     </script>
 </body>
 </html>
