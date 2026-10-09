@@ -1,0 +1,162 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.6">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Courier; -webkit-text-stroke: #000000}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 14.0px Courier; -webkit-text-stroke: #000000; min-height: 17.0px}
+    span.s1 {font-kerning: none}
+  </style>
+</head>
+<body>
+<p class="p1"><span class="s1">&lt;!DOCTYPE html&gt;</span></p>
+<p class="p1"><span class="s1">&lt;html lang="fr"&gt;</span></p>
+<p class="p1"><span class="s1">&lt;head&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta charset="UTF-8"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;meta name="viewport" content="width=device-width, initial-scale=1.0"&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;title&gt;Frelon Tracker - Contrôle&lt;/title&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;style&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; background: #f4f4f9; padding: 20px; text-align: center; color: #333; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>h1 { color: #2c3e50; font-size: 24px; margin-bottom: 5px; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.status { font-weight: bold; padding: 10px; margin: 15px auto; max-width: 400px; border-radius: 8px; background: #e0e0e0; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.connected { background: #2ecc71; color: white; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.btn { display: block; width: 100%; max-width: 400px; margin: 12px auto; padding: 15px; font-size: 16px; font-weight: bold; border: none; border-radius: 8px; cursor: pointer; transition: 0.2s; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.btn-connect { background: #3498db; color: white; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.btn-sync { background: #f39c12; color: white; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.btn-read { background: #9b59b6; color: white; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>.btn-clear { background: #e74c3c; color: white; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>#console { width: 100%; max-width: 380px; height: 180px; margin: 15px auto; padding: 10px; background: #2c3e50; color: #2ecc71; font-family: monospace; font-size: 11px; text-align: left; overflow-y: scroll; border-radius: 8px; }</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/style&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/head&gt;</span></p>
+<p class="p1"><span class="s1">&lt;body&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h1&gt;🐝 Frelon Tracker V1.1&lt;/h1&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;p style="font-size:12px; color:#666;"&gt;Outils de déchargement automatique&lt;/p&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="bleStatus" class="status"&gt;Déconnecté&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button class="btn btn-connect" onclick="connectBLE()"&gt;1. Connexion au Tracker&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button class="btn btn-sync" onclick="synchroniserHeure()" disabled id="btnSync"&gt;2. Synchroniser l'Heure&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button class="btn btn-read" onclick="demanderDonnees()" disabled id="btnRead"&gt;3. Télécharger le CSV&lt;/button&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;button class="btn btn-clear" onclick="viderMemoire()" disabled id="btnClear"&gt;4. Vider la Mémoire&lt;/button&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;h3&gt;Flux de Réception :&lt;/h3&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;div id="console"&gt;En attente de connexion...&lt;/div&gt;</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;script&gt;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const TX_CHARACTERISTIC_UUID = "1b4e28bf-2baf-4253-93ec-d368e19a6d01";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>const RX_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let gattServer = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let rxCharacteristic = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let txCharacteristic = null;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>let csvAccumulateur = "";</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function log(msg) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const cons = document.getElementById("console");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>cons.innerHTML += msg + "&lt;br&gt;";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>cons.scrollTop = cons.scrollHeight;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>async function connectBLE() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>try {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Recherche du tracker...");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>const device = await navigator.bluetooth.requestDevice({</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>filters: [{ name: 'Heltec_Frelon_Tracker' }],</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                    </span>optionalServices: [SERVICE_UUID]</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>});</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Connexion à l'appareil...");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>gattServer = await device.gatt.connect();</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">                </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>const service = await gattServer.getPrimaryService(SERVICE_UUID);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>rxCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>txCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>// Activer l'écoute (Notifications)</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>await txCharacteristic.startNotifications();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>txCharacteristic.addEventListener('characteristicvaluechanged', gererDonneesRecues);</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById("bleStatus").innerText = "Connecté !";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById("bleStatus").className = "status connected";</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">                </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>// Activer les boutons</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById("btnSync").disabled = false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById("btnRead").disabled = false;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>document.getElementById("btnClear").disabled = false;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">                </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Système Prêt !");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>} catch (error) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Erreur : " + error);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function gererDonneesRecues(event) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let enc = new TextDecoder("utf-8");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let texte = enc.decode(event.target.value);</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (texte.includes("--- DEBUT EXPORT CSV ---")) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>csvAccumulateur = "";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Téléchargement commencé...");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (texte.includes("--- FIN EXPORT CSV ---")) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Téléchargement Terminé ! Création du fichier...");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>telechargerFichierCSV(csvAccumulateur);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>return;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if(!texte.startsWith("INFO:")) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>csvAccumulateur += texte + "\n";</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>log(texte);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>async function synchroniserHeure() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const maintenant = new Date();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const pad = (n) =&gt; String(n).padStart(2, '0');</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const dateStr = `${maintenant.getFullYear()}-${pad(maintenant.getMonth()+1)}-${pad(maintenant.getDate())} ${pad(maintenant.getHours())}:${pad(maintenant.getMinutes())}:${pad(maintenant.getSeconds())}`;</span></p>
+<p class="p2"><span class="s1"><span class="Apple-converted-space">            </span></span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let enc = new TextEncoder();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>await rxCharacteristic.writeValue(enc.encode(dateStr));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>log("Heure envoyée : " + dateStr);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>async function demanderDonnees() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>let enc = new TextEncoder();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>await rxCharacteristic.writeValue(enc.encode("LIRE"));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>log("Demande d'exportation envoyée...");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>async function viderMemoire() {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>if (confirm("Voulez-vous vraiment effacer définitivement les logs stockés sur la carte Heltec ?")) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>let enc = new TextEncoder();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>await rxCharacteristic.writeValue(enc.encode("VIDER"));</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">                </span>log("Ordre d'effacement envoyé.");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>function telechargerFichierCSV(contenu) {</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const blob = new Blob([contenu], { type: 'text/csv;charset=utf-8;' });</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const url = URL.createObjectURL(blob);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>const a = document.createElement("a");</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>a.href = url;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>a.download = `logs_frelons_${new Date().toISOString().substring(0,10)}.csv`;</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.body.appendChild(a);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>a.click();</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">            </span>document.body.removeChild(a);</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">        </span>}</span></p>
+<p class="p1"><span class="s1"><span class="Apple-converted-space">    </span>&lt;/</span></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p2"><span class="s1"></span><br></p>
+<p class="p1"><span class="s1">script&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/body&gt;</span></p>
+<p class="p1"><span class="s1">&lt;/html&gt;</span></p>
+</body>
+</html>
