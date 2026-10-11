@@ -55,7 +55,6 @@ html
         Tension Batterie : -- V
     </div>
 
-    <!-- BOUTON PRINCIPAL DIRECT SANS INTERMÉDIAIRE -->
     <button class="btn btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
 
     <div class="row-grid">
@@ -93,34 +92,33 @@ let oledAllume = true;
 function connecterBLE() {
     logConsole("Démarrage du scan...");
     
-    // STRUCTURE DIRECTE RIGOUREUSE EXÉCUTÉE INSTANTANÉMENT SUR LE CLIC SANS EFFETS DE BORD
     navigator.bluetooth.requestDevice({
         filters: [{ name: 'Heltec_Frelon_Tracker' }],
         optionalServices: [SERVICE_UUID]
     })
-    .then(device => {
+    .then(function(device) {
         bleDevice = device;
         bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
         return device.gatt.connect();
     })
-    .then(server => {
+    .then(function(server) {
         return server.getPrimaryService(SERVICE_UUID);
     })
-    .then(service => {
-        return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => {
+    .then(function(service) {
+        return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(function(char) {
             rxCharacteristic = char;
             return service.getCharacteristic(CHARACTERISTIC_UUID_TX);
         });
     })
-    .then(characteristic => {
-        return characteristic.startNotifications().then(() => {
+    .then(function(characteristic) {
+        return characteristic.startNotifications().then(function() {
             characteristic.addEventListener('characteristicvaluechanged', handleNotifications);
             logConsole("✅ Connecté !");
             setConnectedUI(true);
             synchroniserDate();
         });
     })
-    .catch(error => {
+    .catch(function(error) {
         logConsole("❌ Info : " + error);
         setConnectedUI(false);
     });
@@ -155,7 +153,7 @@ function envoyerCommande(chaine) {
     if (rxCharacteristic) {
         let encoder = new TextEncoder();
         rxCharacteristic.writeValue(encoder.encode(chaine))
-            .catch(error => { logConsole("❌ Erreur : " + error); });
+            .catch(function(error) { logConsole("❌ Erreur : " + error); });
     }
 }
 
@@ -177,7 +175,7 @@ function basculerEcran() {
 
 function telechargerFichierCSV() {
     const texteConsole = document.getElementById('consoleOut').innerText;
-    const lignesUniquement = texteConsole.split("\n").filter(ligne => {
+    const lignesUniquement = texteConsole.split("\n").filter(function(ligne) {
         return ligne.includes(";") && !ligne.includes("---") && !ligne.includes("Connecté");
     }).join("\n");
 
@@ -200,7 +198,7 @@ function telechargerFichierCSV() {
 function synchroniserDate() {
     const now = new Date();
     const dateFormatee = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    setTimeout(() => { envoyerCommande(dateFormatee); }, 600);
+    setTimeout(function() { envoyerCommande(dateFormatee); }, 600);
 }
 
 function setConnectedUI(connected) {
