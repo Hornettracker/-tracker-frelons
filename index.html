@@ -4,9 +4,9 @@ html
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hornet Tracker - Interface de Contrôle</title>
+    <title>Hornet Tracker</title>
     <style>
-        /* STYLES CSS PURS ET AUTONOMES (VITESSE MAXIMALE SUR IPHONE) */
+        /* CONFIGURATION CSS INTERNE COMPLETE - ZERO REQUETE EXTERNE */
         body { padding: 15px; background-color: #f8f9fa; font-family: sans-serif; text-align: center; }
         .container { max-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; text-align: left; }
         h3 { text-align: center; margin-bottom: 15px; color: #212529; }
@@ -14,7 +14,6 @@ html
         .status-connected { color: #198754; font-weight: bold; }
         .status-disconnected { color: #dc3545; font-weight: bold; }
         
-        /* BANDEAU BATTERIE ET ALERTE DE CLIGNOTEMENT SOUS 3.60V */
         .battery-box { text-align: center; background-color: #f1f3f5; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #212529; }
         .battery-low { color: #dc3545; animation: clignotementAlerte 1s infinite; }
         
@@ -24,10 +23,8 @@ html
             100% { opacity: 1.0; }
         }
 
-        /* Boutons */
         .btn { display: block; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; box-sizing: border-box; }
         .btn-main-connect { height: 55px; font-size: 18px; background-color: #0d6efd; color: white; margin-bottom: 15px; }
-        .btn-main-connect:hover { background-color: #0b5ed7; }
         
         .row-grid { display: flex; gap: 8px; margin-bottom: 20px; }
         .col-grid { flex: 1; }
@@ -38,7 +35,6 @@ html
         
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         
-        /* Console */
         .console { background-color: #212529; color: #0dfd0d; font-family: monospace; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; margin-top: 15px; font-size: 12px; white-space: pre-wrap; }
         .flex-footer { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
         .btn-sm { padding: 6px 12px; font-size: 12px; background-color: white; border: 1px solid #ccc; color: #212529; border-radius: 4px; width: auto; }
@@ -48,25 +44,20 @@ html
 <body>
 
 <div class="container">
-    <h3>
-        <img src="https://icons8.com" alt="Frelon" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px;">
-        Hornet Tracker v1.1.5
-    </h3>
+    <h3>Hornet Tracker v1.1.5</h3>
     
     <div class="status-box">
         <span>Statut : </span>
         <span id="bleStatus" class="status-disconnected">Déconnecté</span>
     </div>
 
-    <!-- AFFICHAGE DE LA BATTERIE REÇUE EN TÉLÉMÉTRIE -->
     <div id="batteryDisplay" class="battery-box">
         Tension Batterie : -- V
     </div>
 
-    <!-- BOUTON PRINCIPAL -->
+    <!-- BOUTON PRINCIPAL DIRECT SANS INTERMÉDIAIRE -->
     <button class="btn btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
 
-    <!-- GRILLE DES BOUTONS D'ACTION -->
     <div class="row-grid">
         <div class="col-grid">
             <button class="btn btn-action btn-lire" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
@@ -100,11 +91,9 @@ let rxCharacteristic = null;
 let oledAllume = true;       
 
 function connecterBLE() {
-    if (!navigator.bluetooth) {
-        logConsole("❌ Erreur : Web Bluetooth non supporté.");
-        return;
-    }
-    logConsole("Démarrage du scan Bluetooth...");
+    logConsole("Démarrage du scan...");
+    
+    // STRUCTURE DIRECTE RIGOUREUSE EXÉCUTÉE INSTANTANÉMENT SUR LE CLIC SANS EFFETS DE BORD
     navigator.bluetooth.requestDevice({
         filters: [{ name: 'Heltec_Frelon_Tracker' }],
         optionalServices: [SERVICE_UUID]
@@ -115,7 +104,7 @@ function connecterBLE() {
         return device.gatt.connect();
     })
     .then(server => {
-        return server.getPrimaryService(SERVICE_UUID); // SYNTAXE CORRIGÉE ICI
+        return server.getPrimaryService(SERVICE_UUID);
     })
     .then(service => {
         return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => {
@@ -126,13 +115,13 @@ function connecterBLE() {
     .then(characteristic => {
         return characteristic.startNotifications().then(() => {
             characteristic.addEventListener('characteristicvaluechanged', handleNotifications);
-            logConsole("✅ Hornet Tracker connecté avec succès !");
+            logConsole("✅ Connecté !");
             setConnectedUI(true);
             synchroniserDate();
         });
     })
     .catch(error => {
-        logConsole("❌ Échec : " + error);
+        logConsole("❌ Info : " + error);
         setConnectedUI(false);
     });
 }
@@ -143,11 +132,9 @@ function handleNotifications(event) {
     let strData = decoder.decode(value);
     logConsole(strData);
 
-    // Extraction de la tension à la fin de la trame CSV (séparateur ";")
     if (strData.includes(";")) {
         let segments = strData.trim().split(";");
         let tensionBrute = parseFloat(segments[segments.length - 1]);
-
         if (!isNaN(tensionBrute) && tensionBrute > 2.0 && tensionBrute < 5.0) {
             mettreAJourBatterieHTML(tensionBrute);
         }
@@ -157,9 +144,8 @@ function handleNotifications(event) {
 function mettreAJourBatterieHTML(tension) {
     const batBox = document.getElementById('batteryDisplay');
     batBox.innerText = "Tension Batterie : " + tension.toFixed(2) + " V";
-
     if (tension <= SEUIL_BATTERIE_BASSE) {
-        batBox.className = "battery-box battery-low"; // Active le clignotement rouge
+        batBox.className = "battery-box battery-low";
     } else {
         batBox.className = "battery-box";
     }
@@ -169,7 +155,7 @@ function envoyerCommande(chaine) {
     if (rxCharacteristic) {
         let encoder = new TextEncoder();
         rxCharacteristic.writeValue(encoder.encode(chaine))
-            .catch(error => { logConsole("❌ Erreur transmission : " + error); });
+            .catch(error => { logConsole("❌ Erreur : " + error); });
     }
 }
 
@@ -196,7 +182,7 @@ function telechargerFichierCSV() {
     }).join("\n");
 
     if(lignesUniquement.length === 0) {
-        alert("Aucune donnée CSV valide présente dans la console !");
+        alert("Aucune donnée disponible.");
         return;
     }
 
@@ -230,7 +216,7 @@ function setConnectedUI(connected) {
     if (connected) {
         status.innerText = "Connecté";
         status.className = "status-connected";
-        btnConnect.innerText = "DÉCONNECTER SUR L'IPHONE";
+        btnConnect.innerText = "DÉCONNECTER";
         btnConnect.style.backgroundColor = "#dc3545";
         btnConnect.setAttribute("onclick", "deconnecterBLE()");
         btnEcran.style.backgroundColor = "#198754"; 
@@ -239,16 +225,16 @@ function setConnectedUI(connected) {
         status.className = "status-disconnected";
         btnConnect.innerText = "CONNEXION BLUETOOTH";
         btnConnect.style.backgroundColor = "#0d6efd";
-btnConnect.setAttribute("onclick", "connecterBLE()");
-btnEcran.innerText = "ÉCRAN: ON";
-btnEcran.style.backgroundColor = "#6c757d";
-document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
-document.getElementById('batteryDisplay').className = "battery-box";
-oledAllume = true;
+        btnConnect.setAttribute("onclick", "connecterBLE()");
+        btnEcran.innerText = "ÉCRAN: ON";
+        btnEcran.style.backgroundColor = "#6c757d"; 
+        document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
+        document.getElementById('batteryDisplay').className = "battery-box";
+        oledAllume = true;
+    }
 }
-}
+
 function deconnecterBLE() { if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); } }
-function onDisconnected() { logConsole("🔌 Déconnexion du Hornet Tracker."); setConnectedUI(false); }
+function onDisconnected() { logConsole("🔌 Déconnecté."); setConnectedUI(false); }
 function logConsole(text) { const consoleOut = document.getElementById('consoleOut'); consoleOut.innerText += text + "\n"; consoleOut.scrollTop = consoleOut.scrollHeight; }
 function effacerConsole() { document.getElementById('consoleOut').innerText = ""; }
-
