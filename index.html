@@ -46,8 +46,8 @@ html
 <body>
 
 <div class="container">
-    <h3>Hornet Tracker v1.1.6</h3>
-    <div class="version-tag">Mise à jour : 11 Octobre 2026 à 14h50</div>
+    <h3>Hornet Tracker v1.1.6b</h3>
+    <div class="version-tag">Mise à jour : 11 Octobre 2026 à 15h00</div>
     
     <div class="status-box">
         <span>Statut : </span>
@@ -88,10 +88,12 @@ const CHARACTERISTIC_UUID_RX = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
 const CHARACTERISTIC_UUID_TX = "1b4e28bf-2baf-4253-93ec-d368e19a6d01"; 
 
 let bleDevice = null;
+let gattServer = null;
 let rxCharacteristic = null; 
+let txCharacteristic = null;
 let oledAllume = true;       
 
-// Aiguillage unique pour éviter d'ouvrir un scan lors de la déconnexion
+// Aiguillage d'état strict
 function gererBoutonPrincipal() {
     if (bleDevice && bleDevice.gatt.connected) {
         deconnecterBLE();
@@ -112,6 +114,7 @@ function connecterBLE() {
         return device.gatt.connect();
     })
     .then(server => {
+        gattServer = server;
         return server.getPrimaryService(SERVICE_UUID);
     })
     .then(service => {
@@ -119,12 +122,14 @@ function connecterBLE() {
         return service.getCharacteristic(CHARACTERISTIC_UUID_TX);
     })
     .then(characteristic => {
-        return characteristic.startNotifications().then(() => {
-            characteristic.addEventListener('characteristicvaluechanged', handleNotifications);
-            logConsole("✅ Connecté au Hornet Tracker !");
-            setConnectedUI(true);
-            synchroniserDate();
-        });
+        txCharacteristic = characteristic;
+        return txCharacteristic.startNotifications();
+    })
+    .then(() => {
+        txCharacteristic.addEventListener('characteristicvaluechanged', handleNotifications);
+        logConsole("✅ Connecté au Hornet Tracker !");
+        setConnectedUI(true);
+        synchroniserDate();
     })
     .catch(error => {
         logConsole("❌ Erreur : " + error);
@@ -132,7 +137,6 @@ function connecterBLE() {
     });
 }
 
-// EXTRACTEUR DE TENSION INTÉGRÉ : Lit le dernier champ de chaque trame CSV reçue
 function handleNotifications(event) {
     let value = event.target.value;
     let decoder = new TextDecoder('utf-8');
@@ -146,7 +150,6 @@ function handleNotifications(event) {
             const batBox = document.getElementById('batteryDisplay');
             batBox.innerText = "Tension Batterie : " + tensionBrute.toFixed(2) + " V";
             
-            // Alerte clignotante sous les 3.45V de sécurité
             if (tensionBrute <= 3.45) {
                 batBox.className = "battery-box battery-low";
             } else {
@@ -156,16 +159,39 @@ function handleNotifications(event) {
     }
 }
 
+// CORRECTIF INDUSTRIEL : Purge totale des instances avant de couper le lien physique
 function deconnecterBLE() {
     if (bleDevice && bleDevice.gatt.connected) {
-        logConsole("Déconnexion demandée...");
-        bleDevice.gatt.disconnect(); // Déclenche proprement l'événement système d'iOS
+        logConsole("Fermeture propre de la session Bluetooth...");
+        
+        // 1. Arrêt des notifications TX pour couper les flux d'écoute
+        if (txCharacteristic) {
+            txCharacteristic.stopNotifications()
+                .then(() => {
+                    logConsole("Flux de données désactivé.");
+                    // 2. Nettoyage et déconnexion physique du serveur GATT
+                    rxCharacteristic = null;
+                    txCharacteristic = null;
+                    bleDevice.gatt.disconnect();
+                })
+                .catch(err => {
+                    // Sécurité : Si l'arrêt des notifications échoue, on force quand même la déconnexion
+                    rxCharacteristic = null;
+                    txCharacteristic = null;
+                    bleDevice.gatt.disconnect();
+                });
+        } else {
+            rxCharacteristic = null;
+            bleDevice.gatt.disconnect();
+        }
     }
 }
 
 function onDisconnected() {
-    logConsole("🔌 Déconnecté proprement de l'appareil.");
+    logConsole("🔌 Session coupée. Appareil entièrement libéré.");
     setConnectedUI(false);
+    // Remise à zéro des pointeurs globaux
+    gattServer = null;
 }
 
 function envoyerCommande(chaine) {
@@ -216,29 +242,26 @@ function telechargerFichierCSV() {
 function synchroniserDate() {
     const now = new Date();
     const dateFormatee = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    setTimeout(() => { envoyerCommande(dateFormatee); }, 600);
+setTimeout(() => { envoyerCommande(dateFormatee); }, 600);
 }
-
 function setConnectedUI(connected) {
-    const status = document.getElementById('bleStatus');
-    const btnConnect = document.getElementById('btnConnect');
-    const btnEcran = document.getElementById('btnEcran');
-    
-    document.getElementById('btnLire').disabled = !connected;
-    document.getElementById('btnVider').disabled = !connected;
-    btnEcran.disabled = !connected;
-    document.getElementById('btnDownload').disabled = !connected;
-
-    if (connected) {
-        status.innerText = "Connecté";
-        status.className = "status-connected";
-        btnConnect.innerText = "DÉCONNECTER";
-        btnConnect.style.backgroundColor = "#dc3545";
-    } else {
-        status.innerText = "Déconnecté";
-        status.className = "status-disconnected";
-        btnConnect.innerText = "CONNEXION BLUETOOTH";
-        btnConnect.style.backgroundColor = "#0d6efd";
+const status = document.getElementById('bleStatus');
+const btnConnect = document.getElementById('btnConnect');
+const btnEcran = document.getElementById('btnEcran');
+document.getElementById('btnLire').disabled = !connected;
+document.getElementById('btnVider').disabled = !connected;
+btnEcran.disabled = !connected;
+document.getElementById('btnDownload').disabled = !connected;
+if (connected) {
+status.innerText = "Connecté";
+status.className = "status-connected";
+btnConnect.innerText = "DÉCONNECTER";
+btnConnect.style.backgroundColor = "#dc3545";
+} else {
+status.innerText = "Déconnecté";
+status.className = "status-disconnected";
+btnConnect.innerText = "CONNEXION BLUETOOTH";
+btnConnect.style.backgroundColor = "#0d6efd";
 btnEcran.innerText = "ÉCRAN : ALLUMÉ";
 btnEcran.style.backgroundColor = "#6c757d";
 document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
