@@ -46,9 +46,9 @@ html
 <body>
 
 <div class="container">
-    <h3>Hornet Tracker v1.1.5d</h3>
-    <!-- MARQUEUR TEMPOREL VALIDE POUR VÉRIFIER LE CACHE DE L'IPHONE -->
-    <div class="version-tag">Mise à jour : 11 Octobre 2026 à 12h50</div>
+    <!-- NETTOYAGE CHIRURGICAL : Plus aucune image externe pour lever le verrou Apple WebKit -->
+    <h3>Hornet Tracker v1.1.5e</h3>
+    <div class="version-tag">Mise à jour : 11 Octobre 2026 à 12h55</div>
     
     <div class="status-box">
         <span>Statut : </span>
@@ -59,7 +59,6 @@ html
         Tension Batterie : -- V
     </div>
 
-    <!-- BOUTON DE CONNEXION SÉCURISÉ -->
     <button class="btn btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
 
     <div class="row-grid">
@@ -97,7 +96,6 @@ let oledAllume = true;
 function connecterBLE() {
     logConsole("Démarrage du scan...");
     
-    // STRUCTURE NATIVE SANS EMBOÎTEMENT POUR ÉVITER LES BLOCAGES WEBKIT IOS
     navigator.bluetooth.requestDevice({
         filters: [{ name: 'Heltec_Frelon_Tracker' }],
         optionalServices: [SERVICE_UUID]
@@ -136,7 +134,6 @@ function handleNotifications(event) {
     let strData = decoder.decode(value);
     logConsole(strData);
 
-    // Extraction automatique de la tension
     if (strData.includes(";")) {
         let segments = strData.trim().split(";");
         let tensionBrute = parseFloat(segments[segments.length - 1]);
@@ -235,9 +232,10 @@ function setConnectedUI(connected) {
         btnEcran.style.backgroundColor = "#6c757d"; 
         document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
         document.getElementById('batteryDisplay').className = "battery-box";
-oledAllume = true;
+        oledAllume = true;
+    }
 }
-}
+
 function deconnecterBLE() { if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); } }
 function onDisconnected() { logConsole("🔌 Déconnecté."); setConnectedUI(false); }
 function logConsole(text) { const consoleOut = document.getElementById('consoleOut'); consoleOut.innerText += text + "\n"; consoleOut.scrollTop = consoleOut.scrollHeight; }
