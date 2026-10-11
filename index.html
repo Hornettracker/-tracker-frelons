@@ -46,8 +46,8 @@ html
 <body>
 
 <div class="container">
-    <h3>Hornet Tracker v1.1.5g</h3>
-    <div class="version-tag">Mise à jour : 11 Octobre 2026 à 14h00</div>
+    <h3>Hornet Tracker v1.1.5h</h3>
+    <div class="version-tag">Mise à jour : 11 Octobre 2026 à 13h59</div>
     
     <div class="status-box">
         <span>Statut : </span>
@@ -96,15 +96,16 @@ let txCharacteristic = null;
 let oledAllume = true;       
 
 function connecterBLE() {
-    logConsole("Recherche du tracker...");
+    logConsole("Recherche du tracker (Scan universel actif)...");
     
-    // GESTION LINEAIRE ET INDEPENDANTE DES PROMISSES (IDENTIQUE A VOTRE TOUT PREMIER SCRIPT INITIAL)
+    // CONFIGURATION INDUSTRIELLE BLINDÉE : On accepte tous les appareils pour forcer l'ouverture de la fenêtre
     navigator.bluetooth.requestDevice({
-        filters: [{ name: 'Heltec_Frelon_Tracker' }],
+        acceptAllDevices: true,
         optionalServices: [SERVICE_UUID]
     })
     .then(device => {
         bleDevice = device;
+        logConsole("Appareil sélectionné. Connexion au serveur GATT...");
         return device.gatt.connect();
     })
     .then(server => {
@@ -113,7 +114,6 @@ function connecterBLE() {
     })
     .then(service => {
         bleService = service;
-        // Extraction séquentielle propre des canaux RX et TX sans aucune imbrication
         return service.getCharacteristic(CHARACTERISTIC_UUID_RX);
     })
     .then(characteristicRX => {
@@ -135,7 +135,6 @@ function connecterBLE() {
         setConnectedUI(false);
     });
 }
-
 function handleNotifications(event) {
     let value = event.target.value;
     let decoder = new TextDecoder('utf-8');
