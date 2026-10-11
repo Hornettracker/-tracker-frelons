@@ -9,7 +9,18 @@ html
         body { padding: 20px; background-color: #f8f9fa; font-family: sans-serif; text-align: center; }
         .container { max-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; text-align: left; }
         h3 { text-align: center; color: #212529; }
-        .version-tag { text-align: center; font-size: 11px; color: #6c757d; margin-bottom: 20px; font-weight: bold; }
+        .version-tag { text-align: center; font-size: 11px; color: #6c757d; margin-bottom: 15px; font-weight: bold; }
+        
+        /* BANDEAU DE TENSION INTERCEPTÉE */
+        .battery-box { text-align: center; background-color: #f1f3f5; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #212529; }
+        .battery-low { color: #dc3545; animation: clignotementAlerte 1s infinite; }
+        
+        @keyframes clignotementAlerte {
+            0% { opacity: 1.0; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1.0; }
+        }
+
         .btn { display: block; width: 100%; padding: 15px; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; font-size: 16px; margin-bottom: 10px; }
         .btn-blue { background-color: #0d6efd; color: white; }
         .btn-green { background-color: #198754; color: white; }
@@ -22,9 +33,15 @@ html
 <body>
 
 <div class="container">
-    <h3>Hornet Tracker v1.1.5h</h3>
-    <div class="version-tag">Version figée et sécurisée à : 15h05</div>
+    <h3>Hornet Tracker v1.1.6</h3>
+    <div class="version-tag">Version de Production Réelle à : 15h05</div>
 
+    <!-- BANDEAU DE SUIVI TENSION SUR SMARTPHONE -->
+    <div id="batteryDisplay" class="battery-box">
+        Tension Batterie : -- V
+    </div>
+
+    <!-- Le bouton appelle par défaut connecterBLE -->
     <button class="btn btn-blue" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
     <button class="btn btn-green" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
     <button class="btn btn-orange" id="btnVider" onclick="envoyerCommande('VIDER')" disabled>Vider Flash</button>
@@ -51,6 +68,7 @@ function connecterBLE() {
     })
     .then(device => {
         bleDevice = device;
+        bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
         return device.gatt.connect();
     })
     .then(server => {
@@ -65,6 +83,25 @@ function connecterBLE() {
             characteristic.addEventListener('characteristicvaluechanged', function(event) {
                 let data = new TextDecoder('utf-8').decode(event.target.value);
                 logConsole(data);
+                
+                // EXTRACTEUR DE TENSION LOGICIEL
+                // Découpe la trame CSV reçue pour isoler la valeur après le dernier point-virgule
+                if (data.includes(";")) {
+                    let segments = data.trim().split(";");
+                    let tensionBrute = parseFloat(segments[segments.length - 1]);
+                    
+                    if (!isNaN(tensionBrute) && tensionBrute > 2.0 && tensionBrute < 5.0) {
+                        const batBox = document.getElementById('batteryDisplay');
+                        batBox.innerText = "Tension Batterie : " + tensionBrute.toFixed(2) + " V";
+                        
+                        // Alerte clignotante sous les 3.45V de sécurité Li-Ion
+                        if (tensionBrute <= 3.45) {
+                            batBox.className = "battery-box battery-low";
+                        } else {
+                            batBox.className = "battery-box";
+                        }
+                    }
+                }
             });
             logConsole("✅ Connecté !");
             setConnectedUI(true);
@@ -74,6 +111,18 @@ function connecterBLE() {
         logConsole("❌ Erreur : " + error);
         setConnectedUI(false);
     });
+}
+
+function deconnecterBLE() {
+    if (bleDevice && bleDevice.gatt.connected) {
+        logConsole("Fermeture de la session Bluetooth...");
+        bleDevice.gatt.disconnect(); // Coupe la liaison physique proprement au niveau du navigateur
+    }
+}
+
+function onDisconnected() {
+    logConsole("🔌 Déconnecté proprement.");
+    setConnectedUI(false);
 }
 
 function envoyerCommande(chaine) {
@@ -95,11 +144,27 @@ function basculerEcran() {
     }
 }
 
+// CORRECTION CHIRURGICALE DE L'AIGUILLAGE DU BOUTON
 function setConnectedUI(connected) {
+    const btnConnect = document.getElementById('btnConnect');
+    
     document.getElementById('btnLire').disabled = !connected;
     document.getElementById('btnVider').disabled = !connected;
     document.getElementById('btnEcran').disabled = !connected;
-    document.getElementById('btnConnect').innerText = connected ? "DÉCONNECTER" : "CONNEXION BLUETOOTH";
+    
+    if (connected) {
+        btnConnect.innerText = "DÉCONNECTER";
+        // On change dynamiquement l'action pour appeler la fonction de coupure pure
+        btnConnect.setAttribute("onclick", "deconnecterBLE()"); 
+    } else {
+        btnConnect.innerText = "CONNEXION BLUETOOTH";
+        // On restaure l'appel de scan initial pour la prochaine fois
+        btnConnect.setAttribute("onclick", "connecterBLE()"); 
+        document.getElementById('btnEcran').innerText = "ÉCRAN : ALLUMÉ";
+        document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
+        document.getElementById('batteryDisplay').className = "battery-box";
+        oledAllume = true;
+    }
 }
 
 function logConsole(text) {
