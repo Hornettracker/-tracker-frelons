@@ -46,8 +46,8 @@ let oledAllume = true;
 function connecterBLE() {
     logConsole("Recherche du tracker...");
     navigator.bluetooth.requestDevice({
-        filters: [{ name: 'Heltec_Frelon_Tracker' }],
-        optionalServices: [SERVICE_UUID]
+        acceptAllDevices: true,
+optionalServices: [SERVICE_UUID]
     })
     .then(device => {
         bleDevice = device;
