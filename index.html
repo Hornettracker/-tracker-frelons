@@ -6,7 +6,7 @@ html
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hornet Tracker - Interface de Contrôle</title>
     <style>
-        /* STYLES CSS PURS ET AUTONOMES (ZÉRO SERVEUR INTERNET EXTREMEMENT RAPIDE) */
+        /* STYLES CSS PURS ET AUTONOMES (ZÉRO SERVEUR INTERNET - EXTRÊMEMENT RAPIDE) */
         body { padding: 15px; background-color: #f8f9fa; font-family: sans-serif; text-align: center; }
         .container { max-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; text-align: left; }
         h3 { text-align: center; margin-bottom: 15px; color: #212529; }
@@ -14,6 +14,16 @@ html
         .status-connected { color: #198754; font-weight: bold; }
         .status-disconnected { color: #dc3545; font-weight: bold; }
         
+        /* --- BLOC BATTERIE ET ALERTE DE CLIGNOTEMENT --- */
+        .battery-box { text-align: center; background-color: #f1f3f5; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #212529; }
+        .battery-low { color: #dc3545; animation: clignotementAlerte 1s infinite; }
+        
+        @keyframes clignotementAlerte {
+            0% { opacity: 1.0; }
+            50% { opacity: 0.2; }
+            100% { opacity: 1.0; }
+        }
+
         /* Boutons de l'interface */
         .btn { display: block; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; box-sizing: border-box; }
         .btn-main-connect { height: 55px; font-size: 18px; background-color: #0d6efd; color: white; margin-bottom: 15px; }
@@ -40,14 +50,18 @@ html
 
 <div class="container">
     <h3>
-        <!-- Icône de frelon en couleur intégrée librement -->
         <img src="https://icons8.com" alt="Frelon" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px;">
-        Hornet Tracker v1.1.4
+        Hornet Tracker v1.1.5
     </h3>
     
     <div class="status-box">
         <span>Statut : </span>
         <span id="bleStatus" class="status-disconnected">Déconnecté</span>
+    </div>
+
+    <!-- TÉLÉMÉTRIE DE BATTERIE SMARTPHONE INTEGRÉE -->
+    <div id="batteryDisplay" class="battery-box">
+        Tension Batterie : -- V
     </div>
 
     <!-- BOUTON XXL DE CONNEXION -->
@@ -80,6 +94,9 @@ const SERVICE_UUID           = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const CHARACTERISTIC_UUID_RX = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; 
 const CHARACTERISTIC_UUID_TX = "1b4e28bf-2baf-4253-93ec-d368e19a6d01"; 
 
+// --- SEUIL DE SÉCURITÉ DE LA LI-ION ---
+const SEUIL_BATTERIE_BASSE = 3.60; 
+
 let bleDevice = null;
 let rxCharacteristic = null; 
 let oledAllume = true;       
@@ -99,9 +116,7 @@ function connecterBLE() {
         bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
         return device.gatt.connect();
     })
-    .then(server => {
-        return server.getPrimaryService(SERVICE_UUID);
-    })
+    .then(server => server.getPrimaryService(SERVICE_UUID))
     .then(service => {
         return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => {
             rxCharacteristic = char;
@@ -122,14 +137,36 @@ function connecterBLE() {
     });
 }
 
+// --- INTERCEPTION DE LA TENSION CHIMIQUE DANS LE CSV ---
 function handleNotifications(event) {
     let value = event.target.value;
     let decoder = new TextDecoder('utf-8');
     let strData = decoder.decode(value);
     logConsole(strData);
+
+    // Extraction de l'information de tension (dernier champ séparé par des ";")
+    if (strData.includes(";")) {
+        let segments = strData.trim().split(";");
+        let tensionBrute = parseFloat(segments[segments.length - 1]);
+
+        if (!isNaN(tensionBrute) && tensionBrute > 2.0 && tensionBrute < 5.0) {
+            mettreAJourBatterieHTML(tensionBrute);
+        }
+    }
 }
 
-// Fonction d'envoi d'ordres d'origine
+function mettreAJourBatterieHTML(tension) {
+    const batBox = document.getElementById('batteryDisplay');
+    batBox.innerText = `Tension Batterie : ${tension.toFixed(2)} V`;
+
+    // Déclenchement de l'alerte clignotante sous les 3.60V
+    if (tension <= SEUIL_BATTERIE_BASSE) {
+        batBox.className = "battery-box battery-low";
+    } else {
+        batBox.className = "battery-box";
+    }
+}
+
 function envoyerCommande(chaine) {
     if (rxCharacteristic) {
         let encoder = new TextEncoder();
@@ -138,24 +175,22 @@ function envoyerCommande(chaine) {
     }
 }
 
-// Interrupteur d'écran ON / OFF matériel
 function basculerEcran() {
     const bouton = document.getElementById('btnEcran');
     if (!rxCharacteristic) return;
     if (oledAllume) {
         envoyerCommande("ECRAN_OFF");
         bouton.innerText = "ÉCRAN: OFF";
-        bouton.style.backgroundColor = "#dc3545"; // Rouge
+        bouton.style.backgroundColor = "#dc3545"; 
         oledAllume = false;
     } else {
         envoyerCommande("ECRAN_ON");
         bouton.innerText = "ÉCRAN: ON";
-        bouton.style.backgroundColor = "#198754"; // Vert
+        bouton.style.backgroundColor = "#198754"; 
         oledAllume = true;
     }
 }
 
-// Téléchargement du fichier CSV automatique
 function telechargerFichierCSV() {
     const texteConsole = document.getElementById('consoleOut').innerText;
     const lignesUniquement = texteConsole.split("\n").filter(ligne => {
@@ -178,7 +213,6 @@ function telechargerFichierCSV() {
     document.body.removeChild(lien);
 }
 
-// Synchronisation de la date d'usine
 function synchroniserDate() {
     const now = new Date();
     const dateFormatee = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -201,23 +235,22 @@ function setConnectedUI(connected) {
         btnConnect.innerText = "DÉCONNECTER SUR L'IPHONE";
         btnConnect.style.backgroundColor = "#dc3545";
         btnConnect.setAttribute("onclick", "deconnecterBLE()");
-        btnEcran.style.backgroundColor = "#198754"; // Vert par défaut
+        btnEcran.style.backgroundColor = "#198754"; 
     } else {
-        status.innerText = "Déconnecté";
-        status.className = "status-disconnected";
-        btnConnect.innerText = "CONNEXION BLUETOOTH";
-        btnConnect.style.backgroundColor = "#0d6efd";
-        btnConnect.setAttribute("onclick", "connecterBLE()");
-        btnEcran.innerText = "ÉCRAN: ON";
-        btnEcran.style.backgroundColor = "#6c757d"; // Gris neutre
-        oledAllume = true;
-    }
+status.innerText = "Déconnecté";
+status.className = "status-disconnected";
+btnConnect.innerText = "CONNEXION BLUETOOTH";
+btnConnect.style.backgroundColor = "#0d6efd";
+btnConnect.setAttribute("onclick", "connecterBLE()");
+btnEcran.innerText = "ÉCRAN: ON";
+btnEcran.style.backgroundColor = "#6c757d";
+document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
+document.getElementById('batteryDisplay').className = "battery-box";
+oledAllume = true;
 }
-
+}
 function deconnecterBLE() { if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); } }
 function onDisconnected() { logConsole("🔌 Déconnexion du Hornet Tracker."); setConnectedUI(false); }
 function logConsole(text) { const consoleOut = document.getElementById('consoleOut'); consoleOut.innerText += text + "\n"; consoleOut.scrollTop = consoleOut.scrollHeight; }
 function effacerConsole() { document.getElementById('consoleOut').innerText = ""; }
-</script>
-</body>
-</html>
+
