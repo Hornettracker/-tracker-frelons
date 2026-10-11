@@ -3,22 +3,25 @@ html
 <html lang="fr">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Hornet Tracker - Interface de Contrôle</title>
-    <!-- Chargement du style Bootstrap pour des boutons propres et modernes -->
+    <!-- Style Bootstrap épuré -->
     <link href="https://jsdelivr.net" rel="stylesheet">
     <style>
-        body { padding: 20px; background-color: #f8f9fa; font-family: sans-serif; }
-        .container { max-width: 600px; background: white; padding: 25px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
-        .console { background-color: #212529; color: #0dfd0d; font-family: monospace; padding: 15px; border-radius: 4px; height: 250px; overflow-y: auto; margin-top: 15px; font-size: 13px; white-space: pre-wrap; }
-        .status-connected { color: #198754; font-weight: bold; }
-        .status-disconnected { color: #dc3545; font-weight: bold; }
+        body { padding: 15px; background-color: #f8f9fa; font-family: sans-serif; -webkit-text-size-adjust: 100%; }
+        .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: auto; }
+        .console { background-color: #212529; color: #0dfd0d; font-family: monospace; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; margin-top: 15px; font-size: 13px; white-space: pre-wrap; }
+        .status-connected { color: #198754; font-weight: bold; font-size: 16px; }
+        .status-disconnected { color: #dc3545; font-weight: bold; font-size: 16px; }
+        /* Forçage de taille pour éviter les bugs de zoom Bluefy */
+        .btn-action { padding: 12px; font-weight: bold; font-size: 14px; min-width: 100px; }
+        .btn-main-connect { width: 100%; height: 55px; font-size: 18px; font-weight: bold; margin-bottom: 15px; display: block !important; }
     </style>
 </head>
 <body>
 
-<div class="container mt-4">
-    <h2 class="text-center mb-4">🐝 Hornet Tracker v1.1.3</h2>
+<div class="container mt-2">
+    <h3 class="text-center mb-3">🐝 Hornet Tracker v1.1.3</h3>
     
     <!-- Zone de statut de la connexion BLE -->
     <div class="mb-3 text-center">
@@ -26,17 +29,26 @@ html
         <span id="bleStatus" class="status-disconnected">Déconnecté</span>
     </div>
 
-    <!-- Ligne des boutons d'action principaux -->
-    <div class="d-flex justify-content-center flex-wrap gap-2 mb-4">
-        <button class="btn btn-primary" id="btnConnect" onclick="connecterBLE()">Connexion</button>
-        <button class="btn btn-success" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
-        <button class="btn btn-warning text-white" id="btnVider" onclick="envoyerCommande('VIDER')" disabled>Vider Flash</button>
-        <!-- VOTRE NOUVEAU BOUTON D'INTERRUPTEUR ÉCRAN INTEGRÉ -->
-        <button class="btn btn-secondary" id="btnEcran" onclick="basculerEcran()" disabled>ÉCRAN : ALLUMÉ</button>
+    <!-- BOUTON DE CONNEXION PRINCIPAL : Taille XXL forcée pour l'écran de l'iPhone -->
+    <div class="w-100">
+        <button class="btn btn-primary btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
+    </div>
+
+    <!-- Grille des boutons d'action secondaires (Activés après connexion) -->
+    <div class="row g-2 mb-4">
+        <div class="col-4">
+            <button class="btn btn-success w-100 btn-action" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
+        </div>
+        <div class="col-4">
+            <button class="btn btn-warning text-white w-100 btn-action" id="btnVider" onclick="envoyerCommande('VIDER')" disabled>Vider Flash</button>
+        </div>
+        <div class="col-4">
+            <button class="btn btn-secondary w-100 btn-action" id="btnEcran" onclick="basculerEcran()" disabled>ÉCRAN: ON</button>
+        </div>
     </div>
 
     <!-- Console de réception et affichage des trames CSV -->
-    <h5>Console de Réception (Données CSV) :</h5>
+    <h6>Console de Réception (Données CSV) :</h6>
     <div id="consoleOut" class="console">En attente de connexion...</div>
     
     <div class="mt-3 text-center">
@@ -45,16 +57,14 @@ html
 </div>
 
 <script>
-// --- CONFIGURATION DES UUID STRICTS DE VOTRE TRACKER ---
 const SERVICE_UUID           = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-const CHARACTERISTIC_UUID_RX = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; // Écriture (Commande vers Heltec)
-const CHARACTERISTIC_UUID_TX = "1b4e28bf-2baf-4253-93ec-d368e19a6d01"; // Notification (Frelons vers Mac)
+const CHARACTERISTIC_UUID_RX = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; 
+const CHARACTERISTIC_UUID_TX = "1b4e28bf-2baf-4253-93ec-d368e19a6d01"; 
 
 let bleDevice = null;
-let rxCharacteristic = null; // Utilisée pour envoyer les commandes
-let oledAllume = true;       // Suivi de l'état logique de l'écran
+let rxCharacteristic = null; 
+let oledAllume = true;       
 
-// --- CONNEXION WEB BLUETOOTH ---
 function connecterBLE() {
     logConsole("Recherche du Hornet Tracker...");
     navigator.bluetooth.requestDevice({
@@ -72,9 +82,7 @@ function connecterBLE() {
     })
     .then(service => {
         logConsole("Service trouvé. Liaison des caractéristiques...");
-        // Récupération de la caractéristique d'écriture (RX)
         service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => { rxCharacteristic = char; });
-        // Récupération de la caractéristique de lecture/notification (TX)
         return service.getCharacteristic(CHARACTERISTIC_UUID_TX);
     })
     .then(characteristic => {
@@ -82,7 +90,6 @@ function connecterBLE() {
         characteristic.startNotifications().then(() => {
             characteristic.addEventListener('characteristicvaluechanged', handleNotifications);
             setConnectedUI(true);
-            // Synchronisation automatique de la date de la puce RTC DS3231 au moment de la liaison
             synchroniserDate();
         });
     })
@@ -92,7 +99,6 @@ function connecterBLE() {
     });
 }
 
-// --- RECEPTION DES LOGS DEPUIS LA HELTEC ---
 function handleNotifications(event) {
     let value = event.target.value;
     let decoder = new TextDecoder('utf-8');
@@ -100,7 +106,8 @@ function handleNotifications(event) {
     logConsole(strData);
 }
 
-// --- ENVOI DES COMMANDES (LIRE, VIDER, ECRAN) ---
+function enviarCommande(chaine) { /* Alias compatibilité */ envoyerCommande(chaine); }
+
 function envoyerCommande(chaine) {
     if (rxCharacteristic) {
         let encoder = new TextEncoder();
@@ -112,41 +119,30 @@ function envoyerCommande(chaine) {
     }
 }
 
-// --- INTERRUPTEUR DE L'ÉCRAN OLED (ON / OFF) ---
 function basculerEcran() {
     const bouton = document.getElementById('btnEcran');
     if (!rxCharacteristic) return;
 
     if (oledAllume) {
         envoyerCommande("ECRAN_OFF");
-        bouton.innerText = "ÉCRAN : ÉTEINT";
-        bouton.className = "btn btn-danger"; // Devient rouge
+        bouton.innerText = "ÉCRAN: OFF";
+        bouton.className = "btn btn-danger w-100 btn-action"; 
         oledAllume = false;
     } else {
         envoyerCommande("ECRAN_ON");
-        bouton.innerText = "ÉCRAN : ALLUMÉ";
-        bouton.className = "btn btn-success"; // Devient vert
+        bouton.innerText = "ÉCRAN: ON";
+        bouton.className = "btn btn-success w-100 btn-action"; 
         oledAllume = true;
     }
 }
 
-// --- SYNCHRONISATION HORLOGE RTC AUTOMATIQUE ---
 function synchroniserDate() {
     const now = new Date();
-    const annee = now.getFullYear();
-    const mois = String(now.getMonth() + 1).padStart(2, '0');
-    const jour = String(now.getDate()).padStart(2, '0');
-    const heure = String(now.getHours()).padStart(2, '0');
-    const minute = String(now.getMinutes()).padStart(2, '0');
-    const seconde = String(now.getSeconds()).padStart(2, '0');
-    
-    // Format requis par l'ESP32 : YYYY-MM-DD HH:MM:SS
-    const dateFormatee = `${annee}-${mois}-${jour} ${heure}:${minute}:${seconde}`;
+    const dateFormatee = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
     logConsole("Synchronisation RTC en cours...");
     setTimeout(() => { envoyerCommande(dateFormatee); }, 600);
 }
 
-// --- ETAT DE L'INTERFACE GRAPHIQUE ---
 function setConnectedUI(connected) {
     const status = document.getElementById('bleStatus');
     const btnConnect = document.getElementById('btnConnect');
@@ -158,20 +154,19 @@ function setConnectedUI(connected) {
     if (connected) {
         status.innerText = "Connecté";
         status.className = "status-connected";
-        btnConnect.innerText = "Déconnecter";
-        btnConnect.className = "btn btn-outline-danger";
+        btnConnect.innerText = "DÉCONNECTER";
+        btnConnect.className = "btn btn-danger btn-main-connect";
         btnConnect.setAttribute("onclick", "deconnecterBLE()");
     } else {
         status.innerText = "Déconnecté";
         status.className = "status-disconnected";
-        btnConnect.innerText = "Connexion";
-        btnConnect.className = "btn btn-primary";
+        btnConnect.innerText = "CONNEXION BLUETOOTH";
+        btnConnect.className = "btn btn-primary btn-main-connect";
         btnConnect.setAttribute("onclick", "connecterBLE()");
         
-        // Reset cosmétique du bouton d'écran si déconnexion
         const btnEcran = document.getElementById('btnEcran');
-        btnEcran.innerText = "ÉCRAN : ALLUMÉ";
-        btnEcran.className = "btn btn-secondary";
+        btnEcran.innerText = "ÉCRAN: ON";
+        btnEcran.className = "btn btn-secondary w-100 btn-action";
         oledAllume = true;
     }
 }
@@ -191,7 +186,7 @@ function onDisconnected() {
 function logConsole(text) {
     const consoleOut = document.getElementById('consoleOut');
     consoleOut.innerText += text + "\n";
-    consoleOut.scrollTop = consoleOut.scrollHeight; // Scroll automatique vers le bas
+    consoleOut.scrollTop = consoleOut.scrollHeight; 
 }
 
 function effacerConsole() {
