@@ -5,51 +5,73 @@ html
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hornet Tracker - Interface de Contrôle</title>
-    <link href="https://jsdelivr.net" rel="stylesheet">
     <style>
-        body { padding: 15px; background-color: #f8f9fa; font-family: sans-serif; }
-        .container { max-width: 500px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: auto; }
-        .console { background-color: #212529; color: #0dfd0d; font-family: monospace; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; margin-top: 15px; font-size: 13px; white-space: pre-wrap; }
-        .status-connected { color: #198754; font-weight: bold; font-size: 16px; }
-        .status-disconnected { color: #dc3545; font-weight: bold; font-size: 16px; }
-        .btn-action { padding: 12px; font-weight: bold; font-size: 14px; }
-        .btn-main-connect { width: 100%; height: 55px; font-size: 18px; font-weight: bold; margin-bottom: 15px; display: block; }
+        /* STYLES CSS PURS ET AUTONOMES (ZÉRO SERVEUR INTERNET EXTREMEMENT RAPIDE) */
+        body { padding: 15px; background-color: #f8f9fa; font-family: sans-serif; text-align: center; }
+        .container { max-width: 450px; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); margin: 20px auto; text-align: left; }
+        h3 { text-align: center; margin-bottom: 15px; color: #212529; }
+        .status-box { text-align: center; margin-bottom: 15px; font-size: 14px; }
+        .status-connected { color: #198754; font-weight: bold; }
+        .status-disconnected { color: #dc3545; font-weight: bold; }
+        
+        /* Boutons de l'interface */
+        .btn { display: block; width: 100%; border: none; border-radius: 6px; font-weight: bold; cursor: pointer; text-align: center; box-sizing: border-box; }
+        .btn-main-connect { height: 55px; font-size: 18px; background-color: #0d6efd; color: white; margin-bottom: 15px; }
+        .btn-main-connect:hover { background-color: #0b5ed7; }
+        
+        .row-grid { display: flex; gap: 8px; margin-bottom: 20px; }
+        .col-grid { flex: 1; }
+        .btn-action { padding: 12px 5px; font-size: 13px; color: white; }
+        .btn-lire { background-color: #198754; }
+        .btn-vider { background-color: #ffc107; color: #212529; }
+        .btn-ecran { background-color: #6c757d; }
+        
+        /* États désactivés (Opacité) */
+        .btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        
+        /* Console et boutons inférieurs */
+        .console { background-color: #212529; color: #0dfd0d; font-family: monospace; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; margin-top: 15px; font-size: 12px; white-space: pre-wrap; }
+        .flex-footer { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .btn-sm { padding: 6px 12px; font-size: 12px; background-color: white; border: 1px solid #ccc; color: #212529; border-radius: 4px; width: auto; }
+        .btn-download-active { border-color: #0d6efd; color: #0d6efd; }
     </style>
 </head>
 <body>
 
-<div class="container mt-2">
-    <!-- ICONE DE FRELON EN COULEUR INTEGRÉE PROPREMENT -->
-    <h3 class="text-center mb-3">
+<div class="container">
+    <h3>
+        <!-- Icône de frelon en couleur intégrée librement -->
         <img src="https://icons8.com" alt="Frelon" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px;">
         Hornet Tracker v1.1.4
     </h3>
     
-    <div class="mb-3 text-center">
+    <div class="status-box">
         <span>Statut : </span>
         <span id="bleStatus" class="status-disconnected">Déconnecté</span>
     </div>
 
-    <button class="btn btn-primary btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
+    <!-- BOUTON XXL DE CONNEXION -->
+    <button class="btn btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
 
-    <div class="row g-2 mb-4">
-        <div class="col-4">
-            <button class="btn btn-success w-100 btn-action" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
+    <!-- GRILLE DES BOUTONS SECONDAIRES -->
+    <div class="row-grid">
+        <div class="col-grid">
+            <button class="btn btn-action btn-lire" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
         </div>
-        <div class="col-4">
-            <button class="btn btn-warning text-white w-100 btn-action" id="btnVider" onclick="envoyerCommande('VIDER')" disabled>Vider Flash</button>
+        <div class="col-grid">
+            <button class="btn btn-action btn-vider" id="btnVider" onclick="envoyerCommande('VIDER')" disabled>Vider Flash</button>
         </div>
-        <div class="col-4">
-            <button class="btn btn-secondary w-100 btn-action" id="btnEcran" onclick="basculerEcran()" disabled>ÉCRAN: ON</button>
+        <div class="col-grid">
+            <button class="btn btn-action btn-ecran" id="btnEcran" onclick="basculerEcran()" disabled>ÉCRAN: ON</button>
         </div>
     </div>
 
     <h6>Console de Réception (Données CSV) :</h6>
     <div id="consoleOut" class="console">En attente de connexion...</div>
     
-    <div class="d-flex gap-2 justify-content-center mt-3">
-        <button class="btn btn-outline-primary btn-sm" id="btnDownload" onclick="telechargerFichierCSV()" disabled>📥 Télécharger CSV</button>
-        <button class="btn btn-outline-secondary btn-sm" onclick="effacerConsole()">Effacer la console</button>
+    <div class="flex-footer">
+        <button class="btn btn-sm btn-download-active" id="btnDownload" onclick="telechargerFichierCSV()" disabled>📥 Télécharger CSV</button>
+        <button class="btn btn-sm" onclick="effacerConsole()">Effacer console</button>
     </div>
 </div>
 
@@ -78,7 +100,7 @@ function connecterBLE() {
         return device.gatt.connect();
     })
     .then(server => {
-        return server.getPrimaryService(SERVICE_UUID); // CORRECTION SYNTAXE OK
+        return server.getPrimaryService(SERVICE_UUID);
     })
     .then(service => {
         return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => {
@@ -107,6 +129,7 @@ function handleNotifications(event) {
     logConsole(strData);
 }
 
+// Fonction d'envoi d'ordres d'origine
 function envoyerCommande(chaine) {
     if (rxCharacteristic) {
         let encoder = new TextEncoder();
@@ -115,22 +138,24 @@ function envoyerCommande(chaine) {
     }
 }
 
+// Interrupteur d'écran ON / OFF matériel
 function basculerEcran() {
     const bouton = document.getElementById('btnEcran');
     if (!rxCharacteristic) return;
     if (oledAllume) {
         envoyerCommande("ECRAN_OFF");
         bouton.innerText = "ÉCRAN: OFF";
-        bouton.className = "btn btn-danger w-100 btn-action"; 
+        bouton.style.backgroundColor = "#dc3545"; // Rouge
         oledAllume = false;
     } else {
         envoyerCommande("ECRAN_ON");
         bouton.innerText = "ÉCRAN: ON";
-        bouton.className = "btn btn-success w-100 btn-action"; 
+        bouton.style.backgroundColor = "#198754"; // Vert
         oledAllume = true;
     }
 }
 
+// Téléchargement du fichier CSV automatique
 function telechargerFichierCSV() {
     const texteConsole = document.getElementById('consoleOut').innerText;
     const lignesUniquement = texteConsole.split("\n").filter(ligne => {
@@ -153,6 +178,7 @@ function telechargerFichierCSV() {
     document.body.removeChild(lien);
 }
 
+// Synchronisation de la date d'usine
 function synchroniserDate() {
     const now = new Date();
     const dateFormatee = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
@@ -162,29 +188,33 @@ function synchroniserDate() {
 function setConnectedUI(connected) {
     const status = document.getElementById('bleStatus');
     const btnConnect = document.getElementById('btnConnect');
+    const btnEcran = document.getElementById('btnEcran');
     
     document.getElementById('btnLire').disabled = !connected;
     document.getElementById('btnVider').disabled = !connected;
-    document.getElementById('btnEcran').disabled = !connected;
+    btnEcran.disabled = !connected;
     document.getElementById('btnDownload').disabled = !connected;
 
     if (connected) {
         status.innerText = "Connecté";
         status.className = "status-connected";
-        btnConnect.innerText = "DÉCONNECTER";
-        btnConnect.className = "btn btn-danger btn-main-connect";
+        btnConnect.innerText = "DÉCONNECTER SUR L'IPHONE";
+        btnConnect.style.backgroundColor = "#dc3545";
         btnConnect.setAttribute("onclick", "deconnecterBLE()");
+        btnEcran.style.backgroundColor = "#198754"; // Vert par défaut
     } else {
         status.innerText = "Déconnecté";
         status.className = "status-disconnected";
         btnConnect.innerText = "CONNEXION BLUETOOTH";
-        btnConnect.className = "btn btn-primary btn-main-connect";
+        btnConnect.style.backgroundColor = "#0d6efd";
         btnConnect.setAttribute("onclick", "connecterBLE()");
+        btnEcran.innerText = "ÉCRAN: ON";
+        btnEcran.style.backgroundColor = "#6c757d"; // Gris neutre
+        oledAllume = true;
     }
 }
 
 function deconnecterBLE() { if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); } }
-// Correction coquille onDisconnected pour éviter l'attente infinie
 function onDisconnected() { logConsole("🔌 Déconnexion du Hornet Tracker."); setConnectedUI(false); }
 function logConsole(text) { const consoleOut = document.getElementById('consoleOut'); consoleOut.innerText += text + "\n"; consoleOut.scrollTop = consoleOut.scrollHeight; }
 function effacerConsole() { document.getElementById('consoleOut').innerText = ""; }
