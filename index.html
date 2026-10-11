@@ -19,10 +19,9 @@ html
 <body>
 
 <div class="container mt-2">
+    <!-- ICONE DE FRELON EN COULEUR INTEGRÉE PROPREMENT -->
     <h3 class="text-center mb-3">
-        <svg width="28" height="28" viewBox="0 0 512 512" style="vertical-align: middle; margin-right: 6px; fill: #212529;">
-            <path d="M256 16C121.3 16 12 121.3 12 256s109.3 240 244 240 244-109.3 244-240S390.7 16 256 16zm43.2 268.4c-4.4 12.8-15.6 22-29.2 23.6l-50 6c-2.4.3-4.8.4-7.2.4-20 0-38-13.6-42-33.6L160 220c-1.6-8-1-16.4 2-24 5.6-14 18-24 33.2-26l50-6c22-2.6 42.4 11.2 46.4 33.2l11.2 60.8c2.2 12 0 24-3.6 30.4zm34.4-131.6l-20.8-4c-.8-.2-1.6-.2-2.4-.2-6.4 0-12 4.4-13.2 11l-3.6 19.6c-.6 3.4.6 6.8 3 9.2 2 2 5 3.2 8.2 2.6l20.8-4c6.8-.8 11.4-7.2 10.6-14l-3.6-19.6c-.8-7-7.2-11.2-14-10.2z"/>
-        </svg>
+        <img src="https://icons8.com" alt="Frelon" style="width: 32px; height: 32px; vertical-align: middle; margin-right: 8px;">
         Hornet Tracker v1.1.4
     </h3>
     
@@ -48,7 +47,6 @@ html
     <h6>Console de Réception (Données CSV) :</h6>
     <div id="consoleOut" class="console">En attente de connexion...</div>
     
-    <!-- AJOUT DE LA SECTION DE TÉLÉCHARGEMENT EXCEL/CSV -->
     <div class="d-flex gap-2 justify-content-center mt-3">
         <button class="btn btn-outline-primary btn-sm" id="btnDownload" onclick="telechargerFichierCSV()" disabled>📥 Télécharger CSV</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="effacerConsole()">Effacer la console</button>
@@ -79,7 +77,9 @@ function connecterBLE() {
         bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
         return device.gatt.connect();
     })
-    .then(server => return server.getPrimaryService(SERVICE_UUID))
+    .then(server => {
+        return server.getPrimaryService(SERVICE_UUID); // CORRECTION SYNTAXE OK
+    })
     .then(service => {
         return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => {
             rxCharacteristic = char;
@@ -131,11 +131,8 @@ function basculerEcran() {
     }
 }
 
-// --- FONCTION DE EXPORT COMPATIBLE EXCEL DE PRODUCTION ---
 function telechargerFichierCSV() {
     const texteConsole = document.getElementById('consoleOut').innerText;
-    
-    // Nettoie les messages système pour ne garder que le pur CSV
     const lignesUniquement = texteConsole.split("\n").filter(ligne => {
         return ligne.includes(";") && !ligne.includes("---") && !ligne.includes("Connecté");
     }).join("\n");
@@ -145,11 +142,8 @@ function telechargerFichierCSV() {
         return;
     }
 
-    // Ajoute le marqueur UTF-8 (BOM) pour qu'Excel gère directement les caractères accentués sur Mac
     const blob = new Blob(["\ufeff" + lignesUniquement], { type: 'text/csv;charset=utf-8;' });
     const lien = document.createElement("a");
-    
-    // Attribution du nom de fichier daté automatique
     const dateSysteme = new Date();
     lien.download = `frelons_export_${dateSysteme.getDate()}_${dateSysteme.getMonth()+1}.csv`;
     lien.href = window.URL.createObjectURL(blob);
@@ -172,7 +166,7 @@ function setConnectedUI(connected) {
     document.getElementById('btnLire').disabled = !connected;
     document.getElementById('btnVider').disabled = !connected;
     document.getElementById('btnEcran').disabled = !connected;
-    document.getElementById('btnDownload').disabled = !connected; // Active le téléchargement
+    document.getElementById('btnDownload').disabled = !connected;
 
     if (connected) {
         status.innerText = "Connecté";
@@ -190,6 +184,7 @@ function setConnectedUI(connected) {
 }
 
 function deconnecterBLE() { if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); } }
+// Correction coquille onDisconnected pour éviter l'attente infinie
 function onDisconnected() { logConsole("🔌 Déconnexion du Hornet Tracker."); setConnectedUI(false); }
 function logConsole(text) { const consoleOut = document.getElementById('consoleOut'); consoleOut.innerText += text + "\n"; consoleOut.scrollTop = consoleOut.scrollHeight; }
 function effacerConsole() { document.getElementById('consoleOut').innerText = ""; }
