@@ -11,8 +11,8 @@ html
         h3 { text-align: center; color: #212529; }
         .version-tag { text-align: center; font-size: 11px; color: #6c757d; margin-bottom: 15px; font-weight: bold; }
         
-        /* BANDEAU DE TENSION INTERCEPTÉE */
-        .battery-box { text-align: center; background-color: #f1f3f5; padding: 10px; border-radius: 6px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #212529; }
+        /* --- AJOUT DU BANDEAU GRAPHIQUE DE LA BATTERIE --- */
+        .battery-box { text-align: center; background-color: #f1f3f5; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #212529; }
         .battery-low { color: #dc3545; animation: clignotementAlerte 1s infinite; }
         
         @keyframes clignotementAlerte {
@@ -33,15 +33,14 @@ html
 <body>
 
 <div class="container">
-    <h3>Hornet Tracker v1.1.6</h3>
-    <div class="version-tag">Version de Production Réelle à : 15h05</div>
+    <h3>Hornet Tracker v1.1.6c</h3>
+    <div class="version-tag">Version de Terrain validée à : 15h35</div>
 
-    <!-- BANDEAU DE SUIVI TENSION SUR SMARTPHONE -->
+    <!-- AFFICHAGE DE LA TENSION DEMANDÉE -->
     <div id="batteryDisplay" class="battery-box">
         Tension Batterie : -- V
     </div>
 
-    <!-- Le bouton appelle par défaut connecterBLE -->
     <button class="btn btn-blue" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
     <button class="btn btn-green" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
     <button class="btn btn-orange" id="btnVider" onclick="envoyerCommande('VIDER')" disabled>Vider Flash</button>
@@ -84,8 +83,7 @@ function connecterBLE() {
                 let data = new TextDecoder('utf-8').decode(event.target.value);
                 logConsole(data);
                 
-                // EXTRACTEUR DE TENSION LOGICIEL
-                // Découpe la trame CSV reçue pour isoler la valeur après le dernier point-virgule
+                // --- EXTRACTEUR AUTOMATIQUE DE TENSION SANS TOUCHER AU MOTEUR ---
                 if (data.includes(";")) {
                     let segments = data.trim().split(";");
                     let tensionBrute = parseFloat(segments[segments.length - 1]);
@@ -94,7 +92,7 @@ function connecterBLE() {
                         const batBox = document.getElementById('batteryDisplay');
                         batBox.innerText = "Tension Batterie : " + tensionBrute.toFixed(2) + " V";
                         
-                        // Alerte clignotante sous les 3.45V de sécurité Li-Ion
+                        // Alerte clignotante sous les 3.45V pour la décharge réelle
                         if (tensionBrute <= 3.45) {
                             batBox.className = "battery-box battery-low";
                         } else {
@@ -116,7 +114,7 @@ function connecterBLE() {
 function deconnecterBLE() {
     if (bleDevice && bleDevice.gatt.connected) {
         logConsole("Fermeture de la session Bluetooth...");
-        bleDevice.gatt.disconnect(); // Coupe la liaison physique proprement au niveau du navigateur
+        bleDevice.gatt.disconnect();
     }
 }
 
@@ -144,21 +142,17 @@ function basculerEcran() {
     }
 }
 
-// CORRECTION CHIRURGICALE DE L'AIGUILLAGE DU BOUTON
 function setConnectedUI(connected) {
     const btnConnect = document.getElementById('btnConnect');
-    
     document.getElementById('btnLire').disabled = !connected;
     document.getElementById('btnVider').disabled = !connected;
     document.getElementById('btnEcran').disabled = !connected;
     
     if (connected) {
         btnConnect.innerText = "DÉCONNECTER";
-        // On change dynamiquement l'action pour appeler la fonction de coupure pure
         btnConnect.setAttribute("onclick", "deconnecterBLE()"); 
     } else {
         btnConnect.innerText = "CONNEXION BLUETOOTH";
-        // On restaure l'appel de scan initial pour la prochaine fois
         btnConnect.setAttribute("onclick", "connecterBLE()"); 
         document.getElementById('btnEcran').innerText = "ÉCRAN : ALLUMÉ";
         document.getElementById('batteryDisplay').innerText = "Tension Batterie : -- V";
