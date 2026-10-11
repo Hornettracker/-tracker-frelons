@@ -5,7 +5,6 @@ html
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Hornet Tracker - Interface de Contrôle</title>
-    <!-- Style Bootstrap épuré pour iPhone -->
     <link href="https://jsdelivr.net" rel="stylesheet">
     <style>
         body { padding: 15px; background-color: #f8f9fa; font-family: sans-serif; }
@@ -21,22 +20,19 @@ html
 
 <div class="container mt-2">
     <h3 class="text-center mb-3">
-    <!-- Icône SVG d'un frelon stylisé (Libre de droits) -->
-    <svg width="32" height="32" viewBox="0 0 512 512" style="vertical-align: middle; margin-right: 8px; fill: #212529;">
-        <path d="M256 16C121.3 16 12 121.3 12 256s109.3 240 244 240 244-109.3 244-240S390.7 16 256 16zm43.2 268.4c-4.4 12.8-15.6 22-29.2 23.6l-50 6c-2.4.3-4.8.4-7.2.4-20 0-38-13.6-42-33.6L160 220c-1.6-8-1-16.4 2-24 5.6-14 18-24 33.2-26l50-6c22-2.6 42.4 11.2 46.4 33.2l11.2 60.8c2.2 12 0 24-3.6 30.4zm34.4-131.6l-20.8-4c-.8-.2-1.6-.2-2.4-.2-6.4 0-12 4.4-13.2 11l-3.6 19.6c-.6 3.4.6 6.8 3 9.2 2 2 5 3.2 8.2 2.6l20.8-4c6.8-.8 11.4-7.2 10.6-14l-3.6-19.6c-.8-7-7.2-11.2-14-10.2z"/>
-    </svg>
-    Hornet Tracker v1.1.4
-</h3>
+        <svg width="28" height="28" viewBox="0 0 512 512" style="vertical-align: middle; margin-right: 6px; fill: #212529;">
+            <path d="M256 16C121.3 16 12 121.3 12 256s109.3 240 244 240 244-109.3 244-240S390.7 16 256 16zm43.2 268.4c-4.4 12.8-15.6 22-29.2 23.6l-50 6c-2.4.3-4.8.4-7.2.4-20 0-38-13.6-42-33.6L160 220c-1.6-8-1-16.4 2-24 5.6-14 18-24 33.2-26l50-6c22-2.6 42.4 11.2 46.4 33.2l11.2 60.8c2.2 12 0 24-3.6 30.4zm34.4-131.6l-20.8-4c-.8-.2-1.6-.2-2.4-.2-6.4 0-12 4.4-13.2 11l-3.6 19.6c-.6 3.4.6 6.8 3 9.2 2 2 5 3.2 8.2 2.6l20.8-4c6.8-.8 11.4-7.2 10.6-14l-3.6-19.6c-.8-7-7.2-11.2-14-10.2z"/>
+        </svg>
+        Hornet Tracker v1.1.4
+    </h3>
     
     <div class="mb-3 text-center">
         <span>Statut : </span>
         <span id="bleStatus" class="status-disconnected">Déconnecté</span>
     </div>
 
-    <!-- BOUTON DE CONNEXION PRINCIPAL XXL POUR IPHONE -->
     <button class="btn btn-primary btn-main-connect" id="btnConnect" onclick="connecterBLE()">CONNEXION BLUETOOTH</button>
 
-    <!-- Grille des boutons d'action secondaires -->
     <div class="row g-2 mb-4">
         <div class="col-4">
             <button class="btn btn-success w-100 btn-action" id="btnLire" onclick="envoyerCommande('LIRE')" disabled>Lire Logs</button>
@@ -52,13 +48,14 @@ html
     <h6>Console de Réception (Données CSV) :</h6>
     <div id="consoleOut" class="console">En attente de connexion...</div>
     
-    <div class="mt-3 text-center">
+    <!-- AJOUT DE LA SECTION DE TÉLÉCHARGEMENT EXCEL/CSV -->
+    <div class="d-flex gap-2 justify-content-center mt-3">
+        <button class="btn btn-outline-primary btn-sm" id="btnDownload" onclick="telechargerFichierCSV()" disabled>📥 Télécharger CSV</button>
         <button class="btn btn-outline-secondary btn-sm" onclick="effacerConsole()">Effacer la console</button>
     </div>
 </div>
 
 <script>
-// --- UUID STRICTS DE PRODUCTION DE VOTRE HELTEC ---
 const SERVICE_UUID           = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
 const CHARACTERISTIC_UUID_RX = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; 
 const CHARACTERISTIC_UUID_TX = "1b4e28bf-2baf-4253-93ec-d368e19a6d01"; 
@@ -68,13 +65,10 @@ let rxCharacteristic = null;
 let oledAllume = true;       
 
 function connecterBLE() {
-    // 🔍 ÉTAPE 1 : Validation de l'environnement iOS
     if (!navigator.bluetooth) {
-        logConsole("❌ Erreur : L'API Web Bluetooth est bloquée ou non supportée par ce navigateur.");
-        alert("Web Bluetooth indisponible. Vérifiez les autorisations de Bluefy dans les Réglages de l'iPhone.");
+        logConsole("❌ Erreur : Web Bluetooth non supporté.");
         return;
     }
-
     logConsole("Démarrage du scan Bluetooth...");
     navigator.bluetooth.requestDevice({
         filters: [{ name: 'Heltec_Frelon_Tracker' }],
@@ -83,32 +77,25 @@ function connecterBLE() {
     .then(device => {
         bleDevice = device;
         bleDevice.addEventListener('gattserverdisconnected', onDisconnected);
-        logConsole("Appareil détecté. Connexion au serveur GATT...");
         return device.gatt.connect();
     })
-    .then(server => {
-        logConsole("Serveur connecté. Analyse du service...");
-        return server.getPrimaryService(SERVICE_UUID);
-    })
+    .then(server => return server.getPrimaryService(SERVICE_UUID))
     .then(service => {
-        logConsole("Service trouvé. Liaison de la caractéristique RX...");
         return service.getCharacteristic(CHARACTERISTIC_UUID_RX).then(char => {
             rxCharacteristic = char;
-            logConsole("Liaison RX validée. Liaison du canal TX...");
             return service.getCharacteristic(CHARACTERISTIC_UUID_TX);
         });
     })
     .then(characteristic => {
-        logConsole("Canal TX connecté. Activation de l'écoute...");
         return characteristic.startNotifications().then(() => {
             characteristic.addEventListener('characteristicvaluechanged', handleNotifications);
             logConsole("✅ Hornet Tracker connecté avec succès !");
             setConnectedUI(true);
-            synchroniserDate(); // Synchronisation RTC automatique sécurisée
+            synchroniserDate();
         });
     })
     .catch(error => {
-        logConsole("❌ Échec de l'étape : " + error);
+        logConsole("❌ Échec : " + error);
         setConnectedUI(false);
     });
 }
@@ -124,17 +111,13 @@ function envoyerCommande(chaine) {
     if (rxCharacteristic) {
         let encoder = new TextEncoder();
         rxCharacteristic.writeValue(encoder.encode(chaine))
-            .then(() => { console.log("Trame envoyée : " + chaine); })
-            .catch(error => { logConsole("❌ Erreur de transmission : " + error); });
-    } else {
-        logConsole("❌ Erreur : Aucun canal de transmission actif.");
+            .catch(error => { logConsole("❌ Erreur transmission : " + error); });
     }
 }
 
 function basculerEcran() {
     const bouton = document.getElementById('btnEcran');
     if (!rxCharacteristic) return;
-
     if (oledAllume) {
         envoyerCommande("ECRAN_OFF");
         bouton.innerText = "ÉCRAN: OFF";
@@ -148,10 +131,37 @@ function basculerEcran() {
     }
 }
 
+// --- FONCTION DE EXPORT COMPATIBLE EXCEL DE PRODUCTION ---
+function telechargerFichierCSV() {
+    const texteConsole = document.getElementById('consoleOut').innerText;
+    
+    // Nettoie les messages système pour ne garder que le pur CSV
+    const lignesUniquement = texteConsole.split("\n").filter(ligne => {
+        return ligne.includes(";") && !ligne.includes("---") && !ligne.includes("Connecté");
+    }).join("\n");
+
+    if(lignesUniquement.length === 0) {
+        alert("Aucune donnée CSV valide présente dans la console !");
+        return;
+    }
+
+    // Ajoute le marqueur UTF-8 (BOM) pour qu'Excel gère directement les caractères accentués sur Mac
+    const blob = new Blob(["\ufeff" + lignesUniquement], { type: 'text/csv;charset=utf-8;' });
+    const lien = document.createElement("a");
+    
+    // Attribution du nom de fichier daté automatique
+    const dateSysteme = new Date();
+    lien.download = `frelons_export_${dateSysteme.getDate()}_${dateSysteme.getMonth()+1}.csv`;
+    lien.href = window.URL.createObjectURL(blob);
+    lien.style.display = "none";
+    document.body.appendChild(lien);
+    lien.click();
+    document.body.removeChild(lien);
+}
+
 function synchroniserDate() {
     const now = new Date();
     const dateFormatee = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}:${String(now.getSeconds()).padStart(2, '0')}`;
-    logConsole("Envoi de la date RTC d'usine...");
     setTimeout(() => { envoyerCommande(dateFormatee); }, 600);
 }
 
@@ -162,6 +172,7 @@ function setConnectedUI(connected) {
     document.getElementById('btnLire').disabled = !connected;
     document.getElementById('btnVider').disabled = !connected;
     document.getElementById('btnEcran').disabled = !connected;
+    document.getElementById('btnDownload').disabled = !connected; // Active le téléchargement
 
     if (connected) {
         status.innerText = "Connecté";
@@ -175,34 +186,13 @@ function setConnectedUI(connected) {
         btnConnect.innerText = "CONNEXION BLUETOOTH";
         btnConnect.className = "btn btn-primary btn-main-connect";
         btnConnect.setAttribute("onclick", "connecterBLE()");
-        
-        const btnEcran = document.getElementById('btnEcran');
-        btnEcran.innerText = "ÉCRAN: ON";
-        btnEcran.className = "btn btn-secondary w-100 btn-action";
-        oledAllume = true;
     }
 }
 
-function deconnecterBLE() {
-    if (bleDevice && bleDevice.gatt.connected) {
-        bleDevice.gatt.disconnect();
-    }
-}
-
-function onDisconnected() {
-    logConsole("🔌 Déconnexion du Hornet Tracker.");
-    setConnectedUI(false);
-}
-
-function logConsole(text) {
-    const consoleOut = document.getElementById('consoleOut');
-    consoleOut.innerText += text + "\n";
-    consoleOut.scrollTop = consoleOut.scrollHeight; 
-}
-
-function effacerConsole() {
-    document.getElementById('consoleOut').innerText = "";
-}
+function deconnecterBLE() { if (bleDevice && bleDevice.gatt.connected) { bleDevice.gatt.disconnect(); } }
+function onDisconnected() { logConsole("🔌 Déconnexion du Hornet Tracker."); setConnectedUI(false); }
+function logConsole(text) { const consoleOut = document.getElementById('consoleOut'); consoleOut.innerText += text + "\n"; consoleOut.scrollTop = consoleOut.scrollHeight; }
+function effacerConsole() { document.getElementById('consoleOut').innerText = ""; }
 </script>
 </body>
 </html>
