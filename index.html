@@ -11,7 +11,6 @@ html
         h3 { text-align: center; color: #212529; }
         .version-tag { text-align: center; font-size: 11px; color: #6c757d; margin-bottom: 15px; font-weight: bold; }
         
-        /* --- AJOUT DU BANDEAU GRAPHIQUE DE LA BATTERIE --- */
         .battery-box { text-align: center; background-color: #f1f3f5; padding: 12px; border-radius: 6px; margin-bottom: 15px; font-size: 18px; font-weight: bold; color: #212529; }
         .battery-low { color: #dc3545; animation: clignotementAlerte 1s infinite; }
         
@@ -28,15 +27,18 @@ html
         .btn-grey { background-color: #6c757d; color: white; }
         .btn:disabled { opacity: 0.4; cursor: not-allowed; }
         .console { background-color: #212529; color: #0dfd0d; font-family: monospace; padding: 12px; border-radius: 4px; height: 220px; overflow-y: auto; margin-top: 15px; font-size: 12px; white-space: pre-wrap; }
+        
+        .flex-footer { display: flex; gap: 10px; justify-content: center; margin-top: 15px; }
+        .btn-sm { padding: 8px 14px; font-size: 12px; background-color: white; border: 1px solid #ccc; color: #212529; border-radius: 4px; width: auto; font-weight: bold; cursor: pointer; }
+        .btn-download-active { border-color: #0d6efd; color: #0d6efd; background-color: #e8f0fe; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h3>Hornet Tracker v1.1.6c</h3>
-    <div class="version-tag">Version de Terrain validée à : 15h35</div>
+    <h3>Hornet Tracker v1.1.7</h3>
+    <div class="version-tag">Version de Terrain validée à : 20h15</div>
 
-    <!-- AFFICHAGE DE LA TENSION DEMANDÉE -->
     <div id="batteryDisplay" class="battery-box">
         Tension Batterie : -- V
     </div>
@@ -48,6 +50,12 @@ html
 
     <h6>Données reçues :</h6>
     <div id="consoleOut" class="console">En attente de connexion...</div>
+
+    <!-- PIED DE PAGE AVEC EXPORT CSV SÉCURISÉ -->
+    <div class="flex-footer">
+        <button class="btn-sm btn-download-active" id="btnDownload" onclick="telechargerFichierCSV()" disabled>📥 Télécharger CSV</button>
+        <button class="btn-sm" onclick="effacerConsole()">Effacer la console</button>
+    </div>
 </div>
 
 <script>
@@ -83,7 +91,7 @@ function connecterBLE() {
                 let data = new TextDecoder('utf-8').decode(event.target.value);
                 logConsole(data);
                 
-                // --- EXTRACTEUR AUTOMATIQUE DE TENSION SANS TOUCHER AU MOTEUR ---
+                // INTERCEPTEUR DE TENSION SANS TOUCHER AU MOTEUR BLE
                 if (data.includes(";")) {
                     let segments = data.trim().split(";");
                     let tensionBrute = parseFloat(segments[segments.length - 1]);
@@ -92,7 +100,6 @@ function connecterBLE() {
                         const batBox = document.getElementById('batteryDisplay');
                         batBox.innerText = "Tension Batterie : " + tensionBrute.toFixed(2) + " V";
                         
-                        // Alerte clignotante sous les 3.45V pour la décharge réelle
                         if (tensionBrute <= 3.45) {
                             batBox.className = "battery-box battery-low";
                         } else {
@@ -142,11 +149,39 @@ function basculerEcran() {
     }
 }
 
+// FUNCTION DE TÉLÉCHARGEMENT DIRECT REPARÉE COMPATIBLE CHROME ET SAFARI
+function telechargerFichierCSV() {
+    const texteConsole = document.getElementById('consoleOut').innerText;
+    
+    // Filtre les lignes pour ne garder que les données structurées CSV contenant des ";"
+    const lignesUniquement = texteConsole.split("\n").filter(ligne => {
+        return ligne.includes(";") && !ligne.includes("---") && !ligne.includes("STATUT");
+    }).join("\n");
+
+    if (lignesUniquement.trim().length === 0) {
+        alert("Aucune trame de données CSV valide n'est présente dans la console pour l'export.");
+        return;
+    }
+
+    // Injection du marqueur BOM UTF-8 pour forcer l'alignement immédiat des colonnes dans Excel / Mac
+    const blob = new Blob(["\ufeff" + lignesUniquement], { type: 'text/csv;charset=utf-8;' });
+    const lien = document.createElement("a");
+    const dateSysteme = new Date();
+    
+    lien.download = `frelons_export_${dateSysteme.getDate()}_${dateSysteme.getMonth()+1}.csv`;
+    lien.href = window.URL.createObjectURL(blob);
+    lien.style.display = "none";
+    document.body.appendChild(lien);
+    lien.click();
+    document.body.removeChild(lien);
+}
+
 function setConnectedUI(connected) {
     const btnConnect = document.getElementById('btnConnect');
     document.getElementById('btnLire').disabled = !connected;
     document.getElementById('btnVider').disabled = !connected;
     document.getElementById('btnEcran').disabled = !connected;
+    document.getElementById('btnDownload').disabled = !connected; // Libère le bouton CSV au clic
     
     if (connected) {
         btnConnect.innerText = "DÉCONNECTER";
@@ -161,11 +196,8 @@ function setConnectedUI(connected) {
     }
 }
 
-function logConsole(text) {
-    const out = document.getElementById('consoleOut');
-    out.innerText += text + "\n";
-    out.scrollTop = out.scrollHeight; 
-}
+function effacerConsole() { document.getElementById('consoleOut').innerText = ""; }
+function logConsole(text) { const out = document.getElementById('consoleOut'); out.innerText += text + "\n"; out.scrollTop = out.scrollHeight; }
 </script>
 </body>
 </html>
